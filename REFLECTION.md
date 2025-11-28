@@ -1,0 +1,7 @@
+In this module, I gained practical experience integrating several core components of a modern backend workflow, including SQLAlchemy modeling, Pydantic validation, database migrations, testing, and CI/CD automation. Defining the Calculation model helped me understand how SQLAlchemy maps Python classes to database tables and how important it is to maintain clear relationships between models. Implementing Pydantic schemas reinforced the value of input validation, especially when enforcing rules such as preventing division by zero and ensuring allowed operation types.
+
+One of the more challenging aspects was configuring Alembic so that migrations could successfully detect and generate schema changes. Issues with Python paths, missing metadata, and incorrect imports taught me how sensitive Alembic is to project structure. Working through these problems helped solidify my understanding of migrations and database versioning.
+
+Setting up the CI/CD pipeline was another important learning experience. Connecting GitHub Actions to run tests, build the Docker image, and push it to Docker Hub required proper environment variables and access tokens. Troubleshooting authentication and token-scope issues gave me valuable insight into secure automation practices.
+
+Overall, this module provided a comprehensive, real-world workflow that tied together modeling, validation, testing, and deployment, giving me more confidence building production-ready backend systems.
