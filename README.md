@@ -75,3 +75,237 @@ tests/
  └── workflows/
      └── ci.yml
 
+# Module 12 
+# Module 12 – FastAPI Calculator (Users + Calculations + CI/CD + Docker)
+
+This project is an upgraded version of the Module 11 FastAPI calculator.  
+In Module 12, we add **user authentication**, **CRUD operations for calculations**, full **integration tests**, and **CI/CD with Docker Hub** using GitHub Actions.
+
+---
+
+## Features
+
+### **User Endpoints**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/users/register` | Register a new user with email + password |
+| POST | `/users/login` | Log in and verify password |
+
+### **Calculation Endpoints**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/calculations/` | Browse all calculations |
+| POST | `/calculations/` | Add a new calculation |
+| GET | `/calculations/{id}` | Read a single calculation |
+| PUT | `/calculations/{id}` | Edit a calculation |
+| DELETE | `/calculations/{id}` | Delete a calculation |
+
+### **Other Features**
+- Password hashing using **Passlib (bcrypt)**  
+- SQLAlchemy ORM models  
+- Pydantic schemas  
+- PostgreSQL support  
+- Fully automated GitHub Actions pipeline  
+- Docker image build + push to Docker Hub  
+- Integration tests for users + calculations
+
+---
+
+## Project Structure
+
+```
+module12_calci/
+│── app/
+│   ├── auth.py
+│   ├── database.py
+│   ├── models/
+│   │   └── calculation.py
+│   ├── schemas/
+│   │   ├── user.py
+│   │   └── calculation.py
+│   └── routers/
+│       ├── users.py
+│       └── calculations.py
+│
+│── tests/
+│   └── integration/
+│       ├── test_users.py
+│       └── test_calculations.py
+│
+│── Dockerfile
+│── requirements.txt
+│── main.py
+│── README.md
+│── .github/workflows/ci.yml
+```
+
+---
+
+## Running tests locally
+
+Make sure dependencies are installed:
+
+```sh
+pip install -r requirements.txt
+```
+
+Run all tests:
+
+```sh
+pytest -q
+```
+
+You should see all tests passing:
+
+```
+............. [100%]
+```
+
+---
+
+## Running with Docker
+
+### Build the image:
+
+```sh
+docker build -t module12-calci .
+```
+
+### Run the container:
+
+```sh
+docker run -p 8000:8000 module12-calci
+```
+
+Open your browser:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## GitHub Actions + Docker Hub Deployment
+
+This project includes a CI/CD workflow that:
+
+1. Installs dependencies  
+2. Spins up a PostgreSQL container  
+3. Runs integration tests  
+4. Builds a Docker image  
+5. Pushes the image to Docker Hub  
+
+### **.github/workflows/ci.yml**
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test_user -d test_db"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/test_db
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/module12-calci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+```
+
+---
+
+## Endpoints (Sample Requests)
+
+### Register
+```json
+{
+  "email": "newuser@example.com",
+  "password": "secret123"
+}
+```
+
+### Login
+```json
+{
+  "email": "newuser@example.com",
+  "password": "secret123"
+}
+```
+
+### Add Calculation
+```json
+{
+  "a": 10,
+  "b": 5,
+  "type": "add"
+}
+```
+
+---
+
+## 🎯 Summary
+
+You now have a fully functional:
+
+- FastAPI application  
+- User auth system  
+- Calculation CRUD features  
+- Full automated CI/CD pipeline  
+- Dockerized deployment  
+- Integration-tested backend  
+
+
+
