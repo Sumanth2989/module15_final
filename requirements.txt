@@ -8,3 +8,7 @@ pytest
 passlib[bcrypt]
 httpx
 email-validator
+python-jose[cryptography]
+python-multipart
+playwright
+pytest-playwright

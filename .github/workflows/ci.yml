@@ -29,7 +29,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/test_db
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/module12-calci
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/module13-calci
 
     steps:
       - name: Checkout
@@ -44,8 +44,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          python -m playwright install --with-deps
 
-      - name: Run tests
+      - name: Start FastAPI app
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 10
+
+      - name: Run tests (unit, integration and e2e)
         run: pytest -q
 
       - name: Log in to Docker Hub

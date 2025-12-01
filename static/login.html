@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Login</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <h1>Login</h1>
+
+    <form id="login-form">
+      <label>
+        Email
+        <input type="email" name="email" id="email" required />
+      </label>
+
+      <label>
+        Password
+        <input type="password" name="password" id="password" required />
+      </label>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <div id="message"></div>
+
+    <p>
+      Do not have an account
+      <a href="./register.html">Go to register</a>
+    </p>
+
+    <script>
+      const form = document.getElementById("login-form");
+      const msg = document.getElementById("message");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        msg.textContent = "";
+        msg.style.color = "black";
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        if (!email.includes("@")) {
+          msg.textContent = "Please enter a valid email.";
+          msg.style.color = "red";
+          return;
+        }
+
+        if (!password) {
+          msg.textContent = "Please enter a password.";
+          msg.style.color = "red";
+          return;
+        }
+
+        try {
+          const res = await fetch("/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await res.json().catch(() => null);
+
+          if (res.ok && data && data.access_token) {
+            localStorage.setItem("jwt", data.access_token);
+            msg.textContent = "Login successful.";
+            msg.style.color = "green";
+          } else {
+            msg.textContent =
+              (data && data.detail) || "Invalid credentials.";
+            msg.style.color = "red";
+          }
+        } catch (err) {
+          console.error(err);
+          msg.textContent = "Network error.";
+          msg.style.color = "red";
+        }
+      });
+    </script>
+  </body>
+</html>
