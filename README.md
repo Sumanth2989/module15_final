@@ -307,5 +307,77 @@ You now have a fully functional:
 - Dockerized deployment  
 - Integration-tested backend  
 
+# Module 13 - Assignment-JWT Login/Registration with Client-Side Validation & Playwright E2E
+# Module 13 Documentation
+
+## Overview
+Module 13 focuses on building full-stack functionality around user authentication and calculation management. It includes implementing REST API endpoints, configuring database interactions, writing integration tests, and preparing the project for CI/CD deployment.
+
+---
+
+## Features Implemented
+
+### 1. User Registration (POST /users/register)
+- Accepts `UserCreate` schema input.
+- Hashes the user password before saving it.
+- Stores user details in the database.
+- Returns the created user's public information.
+
+### 2. User Login (POST /users/login)
+- Verifies hashed passwords using a secure comparison algorithm.
+- Validates credentials against stored user data.
+- Returns a success message or token if implementing authentication.
+
+---
+
+## Calculation Endpoints (BREAD)
+
+### Browse (GET /calculations)
+- Returns a list of all saved calculations.
+
+### Read (GET /calculations/{id})
+- Fetches a single calculation by ID.
+- Returns 404 if not found.
+
+### Edit (PUT/PATCH /calculations/{id})
+- Updates an existing calculation’s details.
+- Validates input using `CalculationCreate` or relevant schema.
+
+### Add (POST /calculations)
+- Creates a new calculation.
+- Validates input with `CalculationCreate` schema.
+
+### Delete (DELETE /calculations/{id})
+- Removes a calculation entry.
+- Returns success or not found.
+
+---
+
+## Integration Tests
+
+### Test Coverage Includes:
+- Successful and failing user registration.
+- Login with correct and incorrect credentials.
+- CRUD operations on calculations.
+- Database state validation after operations.
+
+### Tools Used:
+- pytest
+- httpx test client
+- FastAPI's dependency overrides for test DB
+
+---
+
+## OpenAPI Verification
+- All endpoints were tested using `/docs` and `/redoc`.
+- Input and output schemas validated.
+- Ensured correct status codes and response formats.
+
+---
+
+## GitHub Actions + Deployment
+- Automated tests run in CI.
+- Postgres service is spun up dynamically.
+- Successful builds push image to Docker Hub.
 
 
