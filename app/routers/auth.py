@@ -1,41 +1,73 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Form
 from sqlalchemy.orm import Session
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 from app.db import get_db
+# We import the User model to save new users
 from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin, UserRead, Token
-from app.auth import hash_password, verify_password, create_access_token
+# We import tools to hash passwords and create tokens
+from app.auth import authenticate_user, create_access_token, get_password_hash
 
-router = APIRouter(tags=["auth"])
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
 
+# --- LOGIN ROUTES ---
+@router.get("/login")
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user_in.email).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+@router.post("/login")
+def login(
+    response: Response, 
+    username: str = Form(...), 
+    password: str = Form(...), 
+    db: Session = Depends(get_db)
+):
+    user = authenticate_user(db, username, password)
+    if not user:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    
+    access_token = create_access_token(data={"sub": str(user.id)})
+    
+    response = RedirectResponse(url="/calculations", status_code=303)
+    # Set the cookie so the browser remembers you
+    response.set_cookie(key="access_token", value=access_token, httponly=True)
+    return response
 
-    user = User(
-        email=user_in.email,
-        hashed_password=hash_password(user_in.password),
-    )
-    db.add(user)
+# --- LOGOUT ROUTE ---
+@router.get("/logout")
+def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("access_token")
+    return response
+
+# --- REGISTER ROUTES (NEW!) ---
+@router.get("/register")
+def register_page(request: Request):
+    # Show the empty register form
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@router.post("/register")
+def register(
+    email: str = Form(...), 
+    password: str = Form(...), 
+    db: Session = Depends(get_db),
+    request: Request = None
+):
+    # 1. Check if user already exists
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        return templates.TemplateResponse("register.html", {"request": request, "error": "Email already registered"})
+    
+    # 2. Hash the password (security!)
+    hashed_pwd = get_password_hash(password)
+    
+    # 3. Create and Save the new User
+    new_user = User(email=email, hashed_password=hashed_pwd)
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
-    return user
-
-
-@router.post("/login", response_model=Token)
-def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
-    if not user or not verify_password(user_in.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
-    token = create_access_token({"sub": str(user.id), "email": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    db.refresh(new_user)
+    
+    # 4. Send them to the login page to sign in
+    return RedirectResponse(url="/login", status_code=303)

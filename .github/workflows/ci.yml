@@ -1,4 +1,4 @@
-name: CI
+name: CI / Build & Deploy
 
 on:
   push:
@@ -10,29 +10,17 @@ jobs:
   test-build-deploy:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U test_user -d test_db"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=5
-
+    # Define environment variables based on your secrets for Docker Hub access
     env:
-      DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/test_db
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/module13-calci
+      # Use the DOCKER_USERNAME secret you already set up
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      # Use the DOCKER_TOKEN secret you already set up
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+      # Use your specific repository name (e.g., your-username/calculator-app)
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/simple-calculator # Replace with your repo name
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
       
       - name: Set up Python
@@ -40,27 +28,37 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Dependencies & Playwright
         run: |
           pip install --upgrade pip
+          # Ensure you have your requirements.txt updated
           pip install -r requirements.txt
           python -m playwright install --with-deps
 
-      - name: Start FastAPI app
-        run: |
-          uvicorn main:app --host 0.0.0.0 --port 8000 &
-          sleep 10
+      - name: Copy Database for Tests
+        # Copy the local test.db into the environment for tests to run against
+        run: cp app/test.db .
 
-      - name: Run tests (unit, integration and e2e)
+      - name: Start FastAPI App for E2E Tests
+        # Run the app in the background, using the correct path
+        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        
+      - name: Wait for App Startup
+        # Give the server time to fully start before running Playwright
+        run: sleep 5
+
+      - name: Run Tests (Unit, Integration, and E2E)
+        # Use your specific test user credentials from the E2E files if needed, 
+        # or rely on the test files to handle registration/login.
         run: pytest -q
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }}
+          password: ${{ env.DOCKERHUB_TOKEN }} # Uses the token you set up
 
-      - name: Build and push Docker image
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .

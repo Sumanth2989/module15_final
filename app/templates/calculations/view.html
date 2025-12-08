@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Calculation Details</h2>
+
+<div style="background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+    <p><strong>ID:</strong> {{ calc.id }}</p>
+    <p><strong>First Number:</strong> {{ calc.operand1 }}</p>
+    <p><strong>Operation:</strong> {{ calc.operation }}</p>
+    <p><strong>Second Number:</strong> {{ calc.operand2 }}</p>
+    <hr>
+    <h3>Result: {{ calc.result }}</h3>
+</div>
+
+<br>
+<a href="/calculations/{{ calc.id }}/edit" class="button">Edit</a>
+<a href="/calculations">Back to List</a>
+{% endblock %}

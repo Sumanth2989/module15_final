@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>My Calculations</h2>
+
+<div style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+    <form action="/calculations/search" method="post" style="display: flex; gap: 10px; align-items: center;">
+        <label><strong>Find Calculation by ID:</strong></label>
+        <input type="number" name="search_id" placeholder="Enter ID (e.g., 5)" required style="padding: 5px;">
+        <button type="submit" style="padding: 5px 10px; cursor: pointer;">Search</button>
+    </form>
+</div>
+
+<p>Here is a list of all the math you have done.</p>
+
+<a href="/calculations/add" class="button-primary">+ Add New Calculation</a>
+
+<hr>
+
+<table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <thead>
+        <tr style="background-color: #eee;">
+            <th>ID</th>
+            <th>First Number</th>
+            <th>Operation</th>
+            <th>Second Number</th>
+            <th>Result</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for calc in calculations %}
+        <tr>
+            <td>{{ calc.id }}</td>
+            <td>{{ calc.operand1 }}</td>
+            <td>{{ calc.operation }}</td>
+            <td>{{ calc.operand2 }}</td>
+            <td><strong>{{ calc.result }}</strong></td>
+            <td>
+                <a href="/calculations/{{ calc.id }}" style="color: green; margin-right: 10px; text-decoration: none; font-weight: bold;">View</a>
+
+                <a href="/calculations/{{ calc.id }}/edit" style="color: blue; margin-right: 10px; text-decoration: none; font-weight: bold;">Edit</a>
+                
+                <form action="/calculations/{{ calc.id }}/delete" method="post" style="display:inline;">
+                    <button type="submit" onclick="return confirm('Delete this calculation?');" style="color: red; cursor: pointer;">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" style="text-align: center;">No calculations found. Add one above!</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

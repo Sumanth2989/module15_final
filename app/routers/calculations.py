@@ -1,102 +1,124 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-
 from app.db import get_db
+from app.models.user import User
 from app.models.calculation import Calculation
-from app.schemas.calculation import CalculationCreate, CalculationRead
-from app.services.calculation_service import perform_calculation
+from app.deps import get_current_user 
 
-router = APIRouter(
-    prefix="/calculations",
-    tags=["calculations"],
-)
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
 
+# 1. BROWSE (List all)
+@router.get("/calculations")
+def list_calculations(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    calculations = db.query(Calculation).filter(Calculation.user_id == user.id).all()
+    return templates.TemplateResponse("calculations/list.html", {"request": request, "calculations": calculations})
 
-@router.get("/", response_model=list[CalculationRead])
-def browse_calculations(db: Session = Depends(get_db)):
-    calcs = db.query(Calculation).all()
-    return calcs
+# --- NEW: SEARCH ROUTE ---
+@router.post("/calculations/search")
+def search_calculation(search_id: int = Form(...)):
+    # Redirect the user to the View page for the ID they typed
+    return RedirectResponse(url=f"/calculations/{search_id}", status_code=303)
 
+# --- ADD ROUTES (Specific routes come FIRST) ---
 
-@router.get("/{calc_id}", response_model=CalculationRead)
-def read_calculation(calc_id: int, db: Session = Depends(get_db)):
-    calc = db.query(Calculation).get(calc_id)
-    if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found",
-        )
-    return calc
+# 2. ADD (Show Form)
+@router.get("/calculations/add")
+def add_calculation_form(request: Request):
+    return templates.TemplateResponse("calculations/add.html", {"request": request})
 
+# 2. ADD (Process Logic)
+@router.post("/calculations/add")
+def add_calculation(
+    request: Request,
+    operand1: float = Form(...),
+    operand2: float = Form(...),
+    operation: str = Form(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    result = 0.0
+    if operation == "add":
+        result = operand1 + operand2
+    elif operation == "subtract":
+        result = operand1 - operand2
+    elif operation == "multiply":
+        result = operand1 * operand2
+    elif operation == "divide":
+        if operand2 == 0:
+            return templates.TemplateResponse("calculations/add.html", {"request": request, "error": "Cannot divide by zero"})
+        result = operand1 / operand2
 
-@router.post("/", response_model=CalculationRead, status_code=status.HTTP_201_CREATED)
-def add_calculation(calc_in: CalculationCreate, db: Session = Depends(get_db)):
-    try:
-        result_value = perform_calculation(
-            a=calc_in.a,
-            b=calc_in.b,
-            operation_type=calc_in.type,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )
-
-    calc = Calculation(
-        a=calc_in.a,
-        b=calc_in.b,
-        type=calc_in.type,
-        result=result_value,
+    new_calc = Calculation(
+        operand1=operand1, 
+        operand2=operand2, 
+        operation=operation, 
+        result=result, 
+        user_id=user.id
     )
-    db.add(calc)
+    db.add(new_calc)
     db.commit()
-    db.refresh(calc)
-    return calc
+    
+    return RedirectResponse(url="/calculations", status_code=303)
 
+# --- GENERIC ROUTES (Routes with {id} come LAST) ---
 
-
-@router.put("/{calc_id}", response_model=CalculationRead)
-def edit_calculation(calc_id: int, calc_in: CalculationCreate, db: Session = Depends(get_db)):
-    calc = db.query(Calculation).get(calc_id)
+# 3. READ (View One)
+@router.get("/calculations/{id}")
+def view_calculation(id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    calc = db.query(Calculation).filter(Calculation.id == id, Calculation.user_id == user.id).first()
+    
+    # If not found, go back to list (or you could show an error page)
     if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found",
-        )
+        return RedirectResponse(url="/calculations")
+        
+    return templates.TemplateResponse("calculations/view.html", {"request": request, "calc": calc})
 
-    try:
-        result_value = perform_calculation(
-            a=calc_in.a,
-            b=calc_in.b,
-            operation_type=calc_in.type,
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        )
-
-    calc.a = calc_in.a
-    calc.b = calc_in.b
-    calc.type = calc_in.type
-    calc.result = result_value
-
-    db.commit()
-    db.refresh(calc)
-    return calc
-
-
-
-@router.delete("/{calc_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_calculation(calc_id: int, db: Session = Depends(get_db)):
-    calc = db.query(Calculation).get(calc_id)
+# 4. EDIT (Show Form)
+@router.get("/calculations/{id}/edit")
+def edit_calculation_form(id: int, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    calc = db.query(Calculation).filter(Calculation.id == id, Calculation.user_id == user.id).first()
     if not calc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Calculation not found",
-        )
+        return RedirectResponse(url="/calculations")
+    return templates.TemplateResponse("calculations/edit.html", {"request": request, "calc": calc})
 
-    db.delete(calc)
-    db.commit()
-    return
+# 4. EDIT (Process Logic)
+@router.post("/calculations/{id}/edit")
+def update_calculation(
+    id: int,
+    operand1: float = Form(...),
+    operand2: float = Form(...),
+    operation: str = Form(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    calc = db.query(Calculation).filter(Calculation.id == id, Calculation.user_id == user.id).first()
+    
+    if calc:
+        result = 0.0
+        if operation == "add": result = operand1 + operand2
+        elif operation == "subtract": result = operand1 - operand2
+        elif operation == "multiply": result = operand1 * operand2
+        elif operation == "divide": 
+             if operand2 == 0:
+                 return RedirectResponse(url="/calculations", status_code=303)
+             result = operand1 / operand2
+        
+        calc.operand1 = operand1
+        calc.operand2 = operand2
+        calc.operation = operation
+        calc.result = result
+        db.commit()
+        
+    return RedirectResponse(url="/calculations", status_code=303)
+
+# 5. DELETE
+@router.post("/calculations/{id}/delete")
+def delete_calculation(id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    calc = db.query(Calculation).filter(Calculation.id == id, Calculation.user_id == user.id).first()
+    if calc:
+        db.delete(calc)
+        db.commit()
+    return RedirectResponse(url="/calculations", status_code=303)

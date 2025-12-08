@@ -1,9 +1,6 @@
-from datetime import datetime
-
-from sqlalchemy import Column, Integer, String, DateTime
-
-from app.db import Base  # if your Base is in a different file, adjust this import
-
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+from app.db import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -11,4 +8,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # --- THIS WAS MISSING ---
+    # This tells the User model: "You have a list of calculations!"
+    calculations = relationship("Calculation", back_populates="user")

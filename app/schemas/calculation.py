@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 
 
 class CalculationType(str, Enum):
@@ -20,8 +20,24 @@ class CalculationBase(BaseModel):
 class CalculationCreate(CalculationBase):
     @model_validator(mode="after")
     def validate_division(self) -> "CalculationCreate":
-        # No division by zero
+        # prevent division by zero on create
         if self.type == CalculationType.DIV and self.b == 0:
+            raise ValueError("b cannot be zero when type is 'divide'")
+        return self
+
+
+class CalculationUpdate(BaseModel):
+    a: Optional[float] = None
+    b: Optional[float] = None
+    type: Optional[CalculationType] = None
+
+    @model_validator(mode="after")
+    def validate_division(self) -> "CalculationUpdate":
+        # If update results in a division, ensure b is not zero.
+        # Note. We allow partial updates, so only validate when we can determine b and type.
+        t = self.type
+        b_val = self.b
+        if t == CalculationType.DIV and b_val == 0:
             raise ValueError("b cannot be zero when type is 'divide'")
         return self
 
@@ -32,7 +48,7 @@ class CalculationRead(BaseModel):
     b: float
     type: CalculationType
     result: float
-    user_id: Optional[int] = None
+    owner_id: Optional[int] = None
 
     class Config:
-        from_attributes = True  # Pydantic v2. For v1 use orm_mode = True
+        from_attributes = True

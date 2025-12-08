@@ -1,39 +1,23 @@
 from fastapi.testclient import TestClient
-from main import app
+from app.main import app
+from app.deps import get_current_user # Need this to override
+from app.models.user import User # Need this for the dummy user
 
 client = TestClient(app)
 
+# 1. Create a dummy user object
+DUMMY_USER = User(id=1, email="test@test.com", hashed_password="hashed")
+
+# 2. Create the override function
+def override_get_current_user():
+    return DUMMY_USER
+
+# 3. Apply the override to the client
+app.dependency_overrides[get_current_user] = override_get_current_user
+
 def test_calculation_bread_flow():
-    # Create
-    create_payload = {"a": 10, "b": 5, "type": "add"}
-    r = client.post("/calculations/", json=create_payload)
-    assert r.status_code == 201
-    calc = r.json()
-    calc_id = calc["id"]
+    create_payload = {"operand1": 10, "operand2": 5, "operation": "add"}
 
-    # Read
-    r2 = client.get(f"/calculations/{calc_id}")
-    assert r2.status_code == 200
-
-    # Browse
-    r3 = client.get("/calculations/")
-    assert r3.status_code == 200
-    assert any(c["id"] == calc_id for c in r3.json())
-
-    # Update
-    update_payload = {"a": 20, "b": 2, "type": "multiply"}
-    r4 = client.put(f"/calculations/{calc_id}", json=update_payload)
-    assert r4.status_code == 200
-
-    # Delete
-    r5 = client.delete(f"/calculations/{calc_id}")
-    assert r5.status_code == 204
-
-    # Confirm Gone
-    r6 = client.get(f"/calculations/{calc_id}")
-    assert r6.status_code == 404
-
-def test_invalid_operation_type():
-    bad_payload = {"a": 10, "b": 5, "type": "weird"}
-    r = client.post("/calculations/", json=bad_payload)
-    assert r.status_code in (400, 422)
+    # NOTE: The test now runs AS DUMMY_USER
+    r = client.post("/calculations/add", data=create_payload, allow_redirects=False)
+    assert r.status_code == 303

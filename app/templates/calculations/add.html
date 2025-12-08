@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Add New Calculation</h3>
+
+<form action="/calculations/add" method="post">
+    <label>First Number:</label>
+    <input type="number" step="any" name="operand1" required>
+
+    <label>Operation:</label>
+    <select name="operation">
+        <option value="add">Add (+)</option>
+        <option value="subtract">Subtract (-)</option>
+        <option value="multiply">Multiply (*)</option>
+        <option value="divide">Divide (/)</option>
+    </select>
+
+    <label>Second Number:</label>
+    <input type="number" step="any" name="operand2" required>
+
+    <br><br>
+    <button type="submit">Calculate Result</button>
+    <a href="/calculations">Cancel</a>
+</form>
+{% endblock %}

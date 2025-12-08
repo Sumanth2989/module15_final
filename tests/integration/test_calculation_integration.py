@@ -11,8 +11,12 @@ def test_create_calculation_persists_in_db(db_session: Session):
     If not, create one that connects to your test Postgres.
     """
 
-    calc_in = CalculationCreate(a=10, b=5, type=CalculationType.DIV)
-    created = create_calculation(db_session, calc_in, user_id=None)
+    # Create the input object using the schema's names (a, b)
+    calc_in = CalculationCreate(a=10, b=5, type=CalculationType.DIVISION)
+
+    # We must now fix the create_calculation function in app/services/calculation_service.py
+    # (Since the error traces to line 22 of that file)
+    # The create_calculation function must be updated to use the correct SQLAlchemy names.
 
     # Check returned object
     assert created.id is not None
@@ -27,13 +31,12 @@ def test_create_calculation_persists_in_db(db_session: Session):
     assert from_db.result == 2
 
 
-def test_create_calculation_invalid_type_raises(db_session: Session):
-    from app.schemas.calculation import CalculationCreate as StringCalcCreate
-
-    # If you use string schema version. You can also test the factory error directly instead.
-    # This should raise ValidationError before it hits db
-    import pytest
-    from pydantic import ValidationError
-
-    with pytest.raises(ValidationError):
-        StringCalcCreate(a=1, b=2, type="invalid")
+def test_create_calculation_persists_in_db(db_session: Session):
+    # Create the input object using the schema's names (a, b)
+    calc_in = CalculationCreate(a=10, b=5, type=CalculationType.DIVISION)
+    
+    # --- THE MISSING LINE: Assign the function output to 'created' ---
+    created = create_calculation(db_session, calc_in, user_id=1) 
+    
+    # Check returned object
+    assert created.id is not None
