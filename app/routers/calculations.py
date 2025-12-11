@@ -1,6 +1,6 @@
 # app/routers/calculations.py
 from fastapi import APIRouter, Depends, HTTPException, Form, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List
@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.calculation import CalculationOut, CalculationType  # Pydantic schema for response
 from app.dependencies import get_current_user
 from app.services.report_service import generate_report
+from app.schemas.report import ReportOut
 
 router = APIRouter(
     prefix="/calculations",
@@ -28,13 +29,7 @@ def list_calculations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Return either HTML page (for browser) or JSON list (for API clients).
-
-    We detect the desired response by checking the Accept header. If the
-    client prefers HTML, render the `calculations/list.html` template and pass
-    the ORM objects. For API clients, return a JSON serializable list of
-    Pydantic `CalculationOut` objects.
-    """
+    """Return either HTML page (for browser) or JSON list (for API clients)."""
     tmpl = Jinja2Templates(directory="app/templates")
 
     calculations = (
@@ -49,10 +44,14 @@ def list_calculations(
     if "text/html" in accept:
         return tmpl.TemplateResponse(
             "calculations/list.html",
-            {"request": request, "calculations": calculations, "current_user": current_user},
+            {
+                "request": request,
+                "calculations": calculations,
+                "current_user": current_user,
+            },
         )
 
-    # Otherwise return JSON serializable data for API clients
+    # Otherwise return JSON-serializable data for API clients
     return [CalculationOut.from_orm(c).dict() for c in calculations]
 
 
@@ -161,48 +160,35 @@ async def search_calculations_post(
 
 
 # -----------------------------
-# HTML report page for E2E tests
-# Path: /calculations/report
+# /calculations/report
 # -----------------------------
-@router.get("/report", response_class=HTMLResponse)
-def calculations_report_page(
+@router.get("/report")
+def report_page(
     request: Request,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    HTML report page for browser and E2E tests.
+    Return HTML report for browsers or JSON for API clients.
 
-    It renders `calculations/report.html` and must contain the text
-    'Calculations Report' in the body. This route does not require auth,
-    so the Playwright test will not see a `Not authenticated` JSON response.
+    - E2E Playwright (browser) hits this with Accept including "text/html".
+    - Integration test hits this and calls response.json() to get ReportOut.
     """
-    # Try to use the seeded test user if it exists
-    user = db.query(User).filter(User.email == "testuser@example.com").first()
-    user_id = None
-    if user is not None:
-        user_id = getattr(user, "id", getattr(user, "user_id", None))
+    user_id = getattr(current_user, "id", getattr(current_user, "user_id", None))
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
 
-    if user_id is not None:
-        report_data = generate_report(db, user_id=user_id)
-    else:
-        # Fallback empty report if no user is found
-        report_data = {
-            "total_count": 0,
-            "average_result": None,
-            "average_a": None,
-            "average_b": None,
-            "op_counts": {},
-            "recent": [],
-        }
+    data = generate_report(db, user_id=user_id)
+    accept = request.headers.get("accept", "")
 
-    return templates.TemplateResponse(
-        "calculations/report.html",
-        {
-            "request": request,
-            "report": report_data,
-            "current_user": user,
-        },
-    )
+    if "text/html" in accept:
+        return templates.TemplateResponse(
+            "calculations/report.html",
+            {"request": request, "report": data, "current_user": current_user},
+        )
+
+    # For API clients return JSON schema-compatible structure
+    return ReportOut(**data)
 
 
 # -----------------------------
@@ -361,7 +347,7 @@ def edit_calculation(
             raise HTTPException(status_code=400, detail="Modulo by zero")
         result = operand1 % operand2
     else:
-        raise HTTPException(status_code=400, detail="Invalid operation")
+        raise HTTPException(status-code=400, detail="Invalid operation")
 
     # Update DB
     calc.a = operand1

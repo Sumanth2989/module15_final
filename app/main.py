@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from sqlalchemy.orm import Session
+
 from app.db import engine, SessionLocal
 from app.models.base_class import Base
 from app.routers.users import router as users_api_router
@@ -11,8 +13,7 @@ from app.routers.auth import router as auth_router
 from app.routers.calculations import router as calculations_router
 from app.routers.reports import router as reports_router
 from app.models.user import User
-from app.auth import hash_password, authenticate_user
-from sqlalchemy.orm import Session
+from app.auth import hash_password, authenticate_user, create_access_token
 
 # -----------------------------
 # Create the database tables automatically
@@ -49,7 +50,7 @@ def seed_default_user():
     Create or update the default test user for E2E tests.
 
     IMPORTANT: Always reset the password hash to match the current hashing
-    algorithm (Argon2), so login with password123 always works.
+    algorithm, so login with password123 always works.
     """
     db: Session = SessionLocal()
     try:
@@ -61,7 +62,7 @@ def seed_default_user():
             )
             db.add(user)
         else:
-            # Force-update the password hash so it always matches Argon2
+            # Force-update the password hash so it always matches current hasher
             user.hashed_password = hash_password("password123")
         db.commit()
     finally:
@@ -74,10 +75,7 @@ def seed_default_user():
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
     """
-    Render the login page.
-    Playwright expects this page to contain inputs:
-    - input name="username"
-    - input name="password"
+    Render the login page for browser flows.
     """
     return templates.TemplateResponse("login.html", {"request": request})
 
@@ -90,6 +88,9 @@ def login_submit(
 ):
     """
     Handle login form submit and redirect to /calculations on success.
+
+    Also sets an `access_token` cookie so browser requests to /calculations
+    and /calculations/report are authenticated.
     """
     db: Session = SessionLocal()
     try:
@@ -105,17 +106,22 @@ def login_submit(
             status_code=400,
         )
 
-    # This is what the Playwright test expects
-    return RedirectResponse(url="/calculations", status_code=303)
+    # Create JWT and store it in a cookie
+    token = create_access_token({"sub": user.email})
+    response = RedirectResponse(url="/calculations", status_code=303)
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {token}",
+        httponly=True,
+        samesite="lax",
+    )
+    return response
 
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
     """
     Render the register page.
-    Playwright expects this page to contain inputs:
-    - input name="email"
-    - input name="password"
     """
     return templates.TemplateResponse("register.html", {"request": request})
 
@@ -149,19 +155,12 @@ def register_submit(
     finally:
         db.close()
 
-    # This is what the Playwright test expects after registration
     return RedirectResponse(url="/login", status_code=303)
 
 
-# -----------------------------
-# Simple /report UI route (root-level, not used by tests)
-# -----------------------------
+# (Optional root-level /report – not used by tests but harmless)
 @app.get("/report", response_class=HTMLResponse)
 def report_page_root(request: Request):
-    """
-    Root-level /report. mostly harmless.
-    E2E uses /calculations/report instead.
-    """
     dummy_report = {
         "total_count": 0,
         "average_result": None,
@@ -172,10 +171,7 @@ def report_page_root(request: Request):
     }
     return templates.TemplateResponse(
         "calculations/report.html",
-        {
-            "request": request,
-            "report": dummy_report,
-        },
+        {"request": request, "report": dummy_report},
     )
 
 
