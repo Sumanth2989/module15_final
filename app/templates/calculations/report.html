@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Calculations Report</h2>
+
+<p><strong>Total Calculations:</strong> {{ report.total_count }}</p>
+<p><strong>Average Result:</strong> {{ report.average_result or 'N/A' }}</p>
+<p><strong>Average Operand A:</strong> {{ report.average_a or 'N/A' }}</p>
+<p><strong>Average Operand B:</strong> {{ report.average_b or 'N/A' }}</p>
+
+<h3>Counts by Operation</h3>
+<ul>
+    {% for op, count in report.op_counts.items() %}
+    <li>{{ op }}: {{ count }}</li>
+    {% else %}
+    <li>No operations recorded.</li>
+    {% endfor %}
+</ul>
+
+<h3>Recent Calculations</h3>
+<table border="1" cellpadding="8">
+    <thead>
+        <tr><th>ID</th><th>A</th><th>Op</th><th>B</th><th>Result</th><th>When</th></tr>
+    </thead>
+    <tbody>
+        {% for c in report.recent %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.a }}</td>
+            <td>{{ c.operation }}</td>
+            <td>{{ c.b }}</td>
+            <td>{{ c.result }}</td>
+            <td>{{ c.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">No recent calculations.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="/calculations">Back to Calculations</a>
+
+{% endblock %}

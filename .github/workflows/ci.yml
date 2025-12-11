@@ -10,53 +10,82 @@ jobs:
   test-build-deploy:
     runs-on: ubuntu-latest
 
-    # Define environment variables based on your secrets for Docker Hub access
     env:
-      # Use the DOCKER_USERNAME secret you already set up
       DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      # Use the DOCKER_TOKEN secret you already set up
       DOCKERHUB_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-      # Use your specific repository name (e.g., your-username/calculator-app)
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/simple-calculator # Replace with your repo name
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/simple-calculator
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
       - name: Install Dependencies & Playwright
         run: |
           pip install --upgrade pip
-          # Ensure you have your requirements.txt updated
           pip install -r requirements.txt
           python -m playwright install --with-deps
 
-      - name: Copy Database for Tests
-        # Copy the local test.db into the environment for tests to run against
-        run: cp app/test.db .
+      - name: Prepare Test Database
+        run: |
+          if [ -f app/test.db ]; then
+            cp app/test.db .
+          else
+            python - <<'PY'
+import sqlite3
+conn = sqlite3.connect('test.db')
+conn.close()
+PY
 
-      - name: Start FastAPI App for E2E Tests
-        # Run the app in the background, using the correct path
-        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-        
+      - name: Start FastAPI App
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+          echo $! > uvicorn.pid
+
       - name: Wait for App Startup
-        # Give the server time to fully start before running Playwright
-        run: sleep 5
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sSf http://127.0.0.1:8000/ >/dev/null; then
+              echo "server is up"
+              break
+            fi
+            echo "waiting for server... ($i)"
+            sleep 1
+          done
 
-      - name: Run Tests (Unit, Integration, and E2E)
-        # Use your specific test user credentials from the E2E files if needed, 
-        # or rely on the test files to handle registration/login.
+      - name: Run Tests
         run: pytest -q
+
+      - name: Dump server log on failure
+        if: failure()
+        run: |
+          echo "----- server.log -----"
+          cat server.log || true
+          echo "----------------------"
+
+      - name: Stop FastAPI App
+        if: always()
+        run: |
+          if [ -f uvicorn.pid ]; then
+            kill $(cat uvicorn.pid) || true
+            rm uvicorn.pid
+          fi
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ env.DOCKERHUB_TOKEN }} # Uses the token you set up
+          password: ${{ env.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6

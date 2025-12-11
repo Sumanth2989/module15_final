@@ -1,54 +1,48 @@
+# /app/schemas/calculation.py
 from enum import Enum
+from pydantic import BaseModel, Field, validator, root_validator
 from typing import Optional
-
-from pydantic import BaseModel, model_validator
+from datetime import datetime
 
 
 class CalculationType(str, Enum):
     ADD = "add"
     SUB = "sub"
-    MUL = "multiply"
-    DIV = "divide"
+    MUL = "mul"
+    DIV = "div"
+    DIVISION = "div"  # alias
+    POW = "pow"
+    MOD = "mod"
 
 
-class CalculationBase(BaseModel):
+class CalculationCreate(BaseModel):
     a: float
     b: float
     type: CalculationType
 
-
-class CalculationCreate(CalculationBase):
-    @model_validator(mode="after")
-    def validate_division(self) -> "CalculationCreate":
-        # prevent division by zero on create
-        if self.type == CalculationType.DIV and self.b == 0:
-            raise ValueError("b cannot be zero when type is 'divide'")
-        return self
+    @root_validator(skip_on_failure=True)
+    def check_division_by_zero(cls, values):
+        t = values.get("type")
+        b = values.get("b")
+        if t in (CalculationType.DIV, CalculationType.DIVISION) and b == 0:
+            raise ValueError("Division by zero")
+        return values
 
 
 class CalculationUpdate(BaseModel):
-    a: Optional[float] = None
-    b: Optional[float] = None
-    type: Optional[CalculationType] = None
-
-    @model_validator(mode="after")
-    def validate_division(self) -> "CalculationUpdate":
-        # If update results in a division, ensure b is not zero.
-        # Note. We allow partial updates, so only validate when we can determine b and type.
-        t = self.type
-        b_val = self.b
-        if t == CalculationType.DIV and b_val == 0:
-            raise ValueError("b cannot be zero when type is 'divide'")
-        return self
+    a: Optional[float]
+    b: Optional[float]
+    type: Optional[CalculationType]
 
 
-class CalculationRead(BaseModel):
+class CalculationOut(BaseModel):
     id: int
     a: float
     b: float
     type: CalculationType
     result: float
-    owner_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True

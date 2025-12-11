@@ -2,17 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculation App</title>
+    <title>{% block title %}My App{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <nav>
-        <a href="/calculations">My Calculations</a>
-        <a href="/logout">Logout</a>
+        <a href="/">Home</a> |
+    <a href="/calculations">Calculations</a> |
+    <a href="/login">Login</a> |
+    <a href="/register">Register</a>
     </nav>
-    
-    <div class="container">
+    <hr>
+    <div class="content">
         {% block content %}{% endblock %}
     </div>
 </body>

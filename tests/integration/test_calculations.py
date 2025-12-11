@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
-from app.deps import get_current_user # Need this to override
+from app.dependencies import get_current_user # Need this to override
 from app.models.user import User # Need this for the dummy user
 
 client = TestClient(app)

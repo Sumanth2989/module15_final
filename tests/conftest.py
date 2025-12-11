@@ -17,7 +17,8 @@ def db_session():
     """
     from app.db import Base, engine, SessionLocal
 
-    # Make sure tables exist
+    # Ensure a clean schema for tests: drop any existing tables then recreate
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()

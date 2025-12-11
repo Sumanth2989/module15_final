@@ -5,9 +5,9 @@
 
 <div style="background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
     <p><strong>ID:</strong> {{ calc.id }}</p>
-    <p><strong>First Number:</strong> {{ calc.operand1 }}</p>
+    <p><strong>First Number:</strong> {{ calc.operand_a }}</p>
     <p><strong>Operation:</strong> {{ calc.operation }}</p>
-    <p><strong>Second Number:</strong> {{ calc.operand2 }}</p>
+    <p><strong>Second Number:</strong> {{ calc.operand_b }}</p>
     <hr>
     <h3>Result: {{ calc.result }}</h3>
 </div>
@@ -15,4 +15,8 @@
 <br>
 <a href="/calculations/{{ calc.id }}/edit" class="button">Edit</a>
 <a href="/calculations">Back to List</a>
+<form action="/calculations/{{ calc.id }}/delete" method="post" style="display:inline; margin-left:10px;">
+    <button type="submit" onclick="return confirm('Delete this calculation?');" style="color: red; cursor: pointer;">Delete</button>
+</form>
+
 {% endblock %}

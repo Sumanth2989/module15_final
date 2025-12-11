@@ -1,12 +1,16 @@
 from __future__ import annotations
-
-import os
-import sys
-from logging.config import fileConfig
-from pathlib import Path
-
 from sqlalchemy import engine_from_config, pool
+import sys
+import os
+from logging.config import fileConfig
+from sqlalchemy import pool
+from pathlib import Path
 from alembic import context
+
+# add your app directory to the path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from app.models import Base  # import your models' Base
 
 
 # Alembic Config object

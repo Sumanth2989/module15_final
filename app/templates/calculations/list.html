@@ -5,15 +5,25 @@
 
 <div style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
     <form action="/calculations/search" method="post" style="display: flex; gap: 10px; align-items: center;">
-        <label><strong>Find Calculation by ID:</strong></label>
-        <input type="number" name="search_id" placeholder="Enter ID (e.g., 5)" required style="padding: 5px;">
-        <button type="submit" style="padding: 5px 10px; cursor: pointer;">Search</button>
+        <input type="text" name="query" placeholder="Search by operation or result" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:4px;" />
+        <button type="submit" class="btn">Search</button>
     </form>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+        <p>Welcome {{ current_user.email }} | <a href="/logout">Logout</a></p>
+    </div>
+    <div>
+        <a href="/calculations/add" class="btn">Add Calculation</a>
+        <a href="/calculations/report" class="btn">View Report</a>
+    </div>
 </div>
 
 <p>Here is a list of all the math you have done.</p>
 
 <a href="/calculations/add" class="button-primary">+ Add New Calculation</a>
+<a href="/calculations/report" class="button-secondary" style="margin-left:10px;">View Report</a>
 
 <hr>
 
@@ -32,15 +42,13 @@
         {% for calc in calculations %}
         <tr>
             <td>{{ calc.id }}</td>
-            <td>{{ calc.operand1 }}</td>
+            <td>{{ calc.operand_a }}</td>
             <td>{{ calc.operation }}</td>
-            <td>{{ calc.operand2 }}</td>
+            <td>{{ calc.operand_b }}</td>
             <td><strong>{{ calc.result }}</strong></td>
             <td>
-                <a href="/calculations/{{ calc.id }}" style="color: green; margin-right: 10px; text-decoration: none; font-weight: bold;">View</a>
-
-                <a href="/calculations/{{ calc.id }}/edit" style="color: blue; margin-right: 10px; text-decoration: none; font-weight: bold;">Edit</a>
-                
+                <a href="/calculations/{{ calc.id }}" style="color: green; margin-right: 10px; font-weight: bold;">View</a>
+                <a href="/calculations/{{ calc.id }}/edit" style="color: blue; margin-right: 10px; font-weight: bold;">Edit</a>
                 <form action="/calculations/{{ calc.id }}/delete" method="post" style="display:inline;">
                     <button type="submit" onclick="return confirm('Delete this calculation?');" style="color: red; cursor: pointer;">Delete</button>
                 </form>
@@ -53,4 +61,5 @@
         {% endfor %}
     </tbody>
 </table>
+
 {% endblock %}
