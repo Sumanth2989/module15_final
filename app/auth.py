@@ -18,6 +18,25 @@ def verify_password(plain_password, hashed_password):
 
 # We define this function as 'get_password_hash'
 def get_password_hash(password):
+    # Defensive: ensure password is a string and does not exceed bcrypt's 72-byte limit.
+    if not isinstance(password, (str, bytes, bytearray)):
+        # convert unusual inputs (e.g., None or dict) to string representation
+        password = str(password)
+
+    if isinstance(password, str):
+        pw_bytes = password.encode('utf-8')
+    else:
+        pw_bytes = bytes(password)
+
+    # bcrypt has a 72-byte input limit; truncate to avoid ValueError from underlying driver
+    if len(pw_bytes) > 72:
+        pw_bytes = pw_bytes[:72]
+        try:
+            password = pw_bytes.decode('utf-8')
+        except Exception:
+            # fallback: use latin-1 to preserve byte values
+            password = pw_bytes.decode('latin-1')
+
     return pwd_context.hash(password)
 
 # --- THE FIX: ALIAS ---

@@ -6,7 +6,6 @@ from fastapi.templating import Jinja2Templates
 from app.db import engine, SessionLocal
 from app.models.base_class import Base
 from app.routers.users import router as users_api_router
-from app.schemas.user import router as users_html_router
 from app.routers.auth import router as auth_router
 from app.routers.calculations import router as calculations_router
 from app.routers.reports import router as reports_router
@@ -38,10 +37,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Include Routers
 # -----------------------------
 app.include_router(auth_router)
-# API-style /users/... endpoints (JSON)
 app.include_router(users_api_router)
-# HTML endpoints (/, /register, /login) served by templates
-app.include_router(users_html_router)
 app.include_router(calculations_router)
 app.include_router(reports_router)
 
