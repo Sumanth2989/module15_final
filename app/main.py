@@ -45,18 +45,25 @@ app.include_router(reports_router)
 
 @app.on_event("startup")
 def seed_default_user():
-    """Create a default test user used by E2E tests if it does not exist."""
+    """
+    Create or update the default test user for E2E tests.
+
+    IMPORTANT: Always reset the password hash to match the current hashing
+    algorithm (Argon2), so login with password123 always works.
+    """
     db: Session = SessionLocal()
     try:
-        existing = db.query(User).filter(User.email == "testuser@example.com").first()
-        if not existing:
+        user = db.query(User).filter(User.email == "testuser@example.com").first()
+        if not user:
             user = User(
                 email="testuser@example.com",
                 hashed_password=hash_password("password123"),
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+        else:
+            # Force-update the password hash so it always matches Argon2
+            user.hashed_password = hash_password("password123")
+        db.commit()
     finally:
         db.close()
 
@@ -147,14 +154,13 @@ def register_submit(
 
 
 # -----------------------------
-# Report UI route for E2E tests
+# Simple /report UI route (root-level, not used by tests)
 # -----------------------------
 @app.get("/report", response_class=HTMLResponse)
-def report_page(request: Request):
+def report_page_root(request: Request):
     """
-    Render a read only calculations report for E2E tests.
-    The test only checks that the body contains 'Calculations Report',
-    so we can pass a simple dummy report object.
+    Root-level /report. mostly harmless.
+    E2E uses /calculations/report instead.
     """
     dummy_report = {
         "total_count": 0,
@@ -164,7 +170,6 @@ def report_page(request: Request):
         "op_counts": {},
         "recent": [],
     }
-    # Your template is at app/templates/calculations/report.html
     return templates.TemplateResponse(
         "calculations/report.html",
         {
