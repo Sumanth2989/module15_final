@@ -30,7 +30,7 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
-      - name: Install Dependencies & Playwright
+      - name: Install Dependencies and Playwright
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
@@ -41,7 +41,6 @@ jobs:
           if [ -f app/test.db ]; then
             cp app/test.db .
           else
-            # Create an empty sqlite file; tests or app startup can initialize schema.
             touch test.db
           fi
 
@@ -55,11 +54,16 @@ jobs:
           for i in $(seq 1 20); do
             if curl -sSf http://127.0.0.1:8000/ >/dev/null; then
               echo "server is up"
-              break
+              exit 0
             fi
             echo "waiting for server... ($i)"
             sleep 1
           done
+          echo "server failed to start"
+          echo "----- server.log -----"
+          cat server.log || true
+          echo "----------------------"
+          exit 1
 
       - name: Run Tests
         run: pytest -q

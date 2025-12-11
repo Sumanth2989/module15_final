@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+
 from app.models.user import User
 
 # --- CONFIGURATION ---
@@ -10,62 +12,27 @@ SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use Argon2 for password hashing. No 72 byte limit like bcrypt.
+pwd_context = CryptContext(
+    schemes=["argon2"],
+    deprecated="auto",
+)
 
 # --- HASHING TOOLS ---
-def verify_password(plain_password, hashed_password):
-    # Defensive: ensure the incoming plain password is truncated the same way
-    # as when it was hashed (bcrypt limit is 72 bytes). This prevents
-    # verification mismatches for passwords longer than 72 bytes and avoids
-    # ValueError from underlying bcrypt drivers when raw bytes are used.
-    if not isinstance(plain_password, (str, bytes, bytearray)):
-        plain_password = str(plain_password)
-
-    if isinstance(plain_password, str):
-        pw_bytes = plain_password.encode("utf-8")
-    else:
-        pw_bytes = bytes(plain_password)
-
-    if len(pw_bytes) > 72:
-        pw_bytes = pw_bytes[:72]
-        try:
-            plain_password = pw_bytes.decode("utf-8")
-        except Exception:
-            plain_password = pw_bytes.decode("latin-1")
-
+def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
-# We define this function as 'get_password_hash'
-def get_password_hash(password):
-    # Defensive: ensure password is a string and does not exceed bcrypt's 72-byte limit.
-    if not isinstance(password, (str, bytes, bytearray)):
-        # convert unusual inputs (e.g., None or dict) to string representation
-        password = str(password)
 
-    if isinstance(password, str):
-        pw_bytes = password.encode('utf-8')
-    else:
-        pw_bytes = bytes(password)
-
-    # bcrypt has a 72-byte input limit; truncate to avoid ValueError from underlying driver
-    if len(pw_bytes) > 72:
-        pw_bytes = pw_bytes[:72]
-        try:
-            password = pw_bytes.decode('utf-8')
-        except Exception:
-            # fallback: use latin-1 to preserve byte values
-            password = pw_bytes.decode('latin-1')
-
+def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-# --- THE FIX: ALIAS ---
-# This line makes 'hash_password' point to the same tool.
-# Now both names work!
+
+# Alias if other code uses hash_password
 hash_password = get_password_hash
 
 # --- AUTHENTICATION LOGIC ---
 def authenticate_user(db: Session, username: str, password: str):
-    # We use 'email' as the username
+    # We use email as the username
     user = db.query(User).filter(User.email == username).first()
     if not user:
         return None
@@ -79,11 +46,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 def decode_access_token(token: str):
     try:
