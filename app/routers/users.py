@@ -87,7 +87,8 @@ async def login(request: Request, response: Response, db: Session = Depends(get_
         password = form.get("password")
 
     user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, getattr(user, 'password', getattr(user, 'hashed_password', None))):
+    # Always compare the provided plaintext password with the stored hashed_password
+    if not user or not verify_password(password, user.hashed_password):
         if "application/json" in content_type:
             return JSONResponse({"detail": "Invalid email or password"}, status_code=401)
         return {"template": "login.html", "error": "Invalid email or password"}

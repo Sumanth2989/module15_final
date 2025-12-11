@@ -76,7 +76,7 @@ def login(
     # Accept either 'email' or 'username' form field name
     login_email = email or username
     user = db.query(User).filter(User.email == login_email).first()
-    stored_password = getattr(user, 'password', None) if user else None
+    stored_password = user.hashed_password if user else None
     if not user or not verify_password(password, stored_password):
         return templates.TemplateResponse(
             "login.html",

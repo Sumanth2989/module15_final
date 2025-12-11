@@ -53,7 +53,7 @@ def seed_default_user():
     try:
         existing = db.query(User).filter(User.email == "testuser@example.com").first()
         if not existing:
-            user = User(email="testuser@example.com", password=hash_password("password123"))
+            user = User(email="testuser@example.com", hashed_password=hash_password("password123"))
             db.add(user)
             db.commit()
             db.refresh(user)
