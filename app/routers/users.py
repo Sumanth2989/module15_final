@@ -7,7 +7,7 @@ templates = Jinja2Templates(directory="app/templates")
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.user import User
-from app.auth import hash_password, verify_password
+from app.auth import hash_password, verify_password, create_access_token
 
 router = APIRouter(
     prefix="/users",
@@ -55,13 +55,11 @@ async def register(request: Request, response: Response, db: Session = Depends(g
     db.commit()
     db.refresh(user)
 
-    # Set cookie for session
-    response.set_cookie(key="user_id", value=str(getattr(user, 'user_id', getattr(user, 'id', None))))
-
     if "application/json" in content_type:
         return JSONResponse({"id": getattr(user, 'id', None), "email": user.email}, status_code=201)
 
-    return RedirectResponse(url="/calculations", status_code=status.HTTP_303_SEE_OTHER)
+    # For browser flows redirect to login (do not auto-login here)
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # -----------------------------
@@ -94,13 +92,11 @@ async def login(request: Request, response: Response, db: Session = Depends(get_
             return JSONResponse({"detail": "Invalid email or password"}, status_code=401)
         return {"template": "login.html", "error": "Invalid email or password"}
 
-    # Set cookie for session
-    response.set_cookie(key="user_id", value=str(getattr(user, 'user_id', getattr(user, 'id', None))))
-
     if "application/json" in content_type:
-        return JSONResponse({"id": getattr(user, 'id', None), "email": user.email}, status_code=200)
+        return JSONResponse({"id": getattr(user, 'id', None), "email": user.email}, status_code=201)
 
-    return RedirectResponse(url="/calculations", status_code=status.HTTP_303_SEE_OTHER)
+    # For browser flows redirect to login (do not auto-login here)
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 # -----------------------------
