@@ -347,7 +347,7 @@ def edit_calculation(
             raise HTTPException(status_code=400, detail="Modulo by zero")
         result = operand1 % operand2
     else:
-        raise HTTPException(status-code=400, detail="Invalid operation")
+        raise HTTPException(status_code=400, detail="Invalid operation")
 
     # Update DB
     calc.a = operand1
