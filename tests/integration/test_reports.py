@@ -13,7 +13,7 @@ def test_report_route_json():
     
     try:
         # seed a user with hashed password
-        u = User(email="reporter2@example.com", password=hash_password("password123"))
+        u = User(email="reporter2@example.com", hashed_password=hash_password("password123"))
         db.add(u)
         db.commit()
         db.refresh(u)

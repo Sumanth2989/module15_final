@@ -93,10 +93,13 @@ async def login(request: Request, response: Response, db: Session = Depends(get_
         return {"template": "login.html", "error": "Invalid email or password"}
 
     if "application/json" in content_type:
-        return JSONResponse({"id": getattr(user, 'id', None), "email": user.email}, status_code=201)
+        return JSONResponse({"id": getattr(user, 'id', None), "email": user.email}, status_code=200)
 
-    # For browser flows redirect to login (do not auto-login here)
-    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+    # For browser flows: create access token, set as HTTP-only cookie, and redirect to /calculations
+    token = create_access_token({"sub": getattr(user, 'id', getattr(user, 'user_id', None))})
+    redirect = RedirectResponse(url="/calculations", status_code=status.HTTP_303_SEE_OTHER)
+    redirect.set_cookie(key="access_token", value=token, httponly=True)
+    return redirect
 
 
 # -----------------------------
