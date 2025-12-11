@@ -14,6 +14,25 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # --- HASHING TOOLS ---
 def verify_password(plain_password, hashed_password):
+    # Defensive: ensure the incoming plain password is truncated the same way
+    # as when it was hashed (bcrypt limit is 72 bytes). This prevents
+    # verification mismatches for passwords longer than 72 bytes and avoids
+    # ValueError from underlying bcrypt drivers when raw bytes are used.
+    if not isinstance(plain_password, (str, bytes, bytearray)):
+        plain_password = str(plain_password)
+
+    if isinstance(plain_password, str):
+        pw_bytes = plain_password.encode("utf-8")
+    else:
+        pw_bytes = bytes(plain_password)
+
+    if len(pw_bytes) > 72:
+        pw_bytes = pw_bytes[:72]
+        try:
+            plain_password = pw_bytes.decode("utf-8")
+        except Exception:
+            plain_password = pw_bytes.decode("latin-1")
+
     return pwd_context.verify(plain_password, hashed_password)
 
 # We define this function as 'get_password_hash'
