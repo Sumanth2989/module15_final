@@ -1,12 +1,12 @@
 # Stage 1: Build Environment (using a slim Python base)
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
 
 # Prevent Python from writing .pyc files and buffering stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Install dependencies for building the packages
 RUN apt-get update && \
@@ -32,7 +32,10 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 
 # Copy the rest of the application code
 COPY app /app/app
-COPY test.db /app/test.db  # Copy the database file for initial deployment
+
+# (Optional) If you really want a pre-seeded DB, you would need to
+# ensure test.db exists in the repo root and is not excluded by .dockerignore
+# COPY test.db /app/test.db
 
 # Expose the port Uvicorn runs on
 EXPOSE 8000
