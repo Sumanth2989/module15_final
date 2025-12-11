@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 
 from app.db import engine, SessionLocal
 from app.models.base_class import Base
@@ -49,12 +50,37 @@ def seed_default_user():
     try:
         existing = db.query(User).filter(User.email == "testuser@example.com").first()
         if not existing:
-            user = User(email="testuser@example.com", hashed_password=hash_password("password123"))
+            user = User(
+                email="testuser@example.com",
+                hashed_password=hash_password("password123"),
+            )
             db.add(user)
             db.commit()
             db.refresh(user)
     finally:
         db.close()
+
+
+# -----------------------------
+# UI routes for auth pages
+# -----------------------------
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    """
+    Render the login page used by Playwright E2E tests.
+    Expects an input with name="username" and name="password".
+    """
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    """
+    Render the register page used by Playwright E2E tests.
+    Expects an input with name="email" and name="password".
+    """
+    return templates.TemplateResponse("register.html", {"request": request})
+
 
 # -----------------------------
 # Root Route
@@ -64,4 +90,7 @@ def read_root(request: Request):
     """
     Home page
     """
-    return templates.TemplateResponse("index.html", {"request": request, "message": "Module 14: BREAD Functionality Ready"})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "message": "Module 14: BREAD Functionality Ready"},
+    )
