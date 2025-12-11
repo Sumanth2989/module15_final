@@ -50,7 +50,7 @@ async def register(request: Request, response: Response, db: Session = Depends(g
             return JSONResponse({"detail": "Email already registered"}, status_code=400)
         return {"template": "register.html", "error": "Email already registered"}
 
-    user = User(email=email, password=hash_password(password))
+    user = User(email=email, hashed_password=hash_password(password))
     db.add(user)
     db.commit()
     db.refresh(user)

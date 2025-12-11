@@ -51,10 +51,10 @@ def register_page(request: Request):
 
 @router.post("/register")
 def register(
+    request: Request,
     email: str = Form(...), 
     password: str = Form(...), 
-    db: Session = Depends(get_db),
-    request: Request = None
+    db: Session = Depends(get_db)
 ):
     # 1. Check if user already exists
     existing_user = db.query(User).filter(User.email == email).first()

@@ -43,7 +43,7 @@ def register(
     # Create new user
     user = User(
         email=email,
-        password=hash_password(password)
+        hashed_password=hash_password(password)
     )
     db.add(user)
     db.commit()
