@@ -384,6 +384,8 @@ Module 13 focuses on building full-stack functionality around user authenticatio
 
 This repository contains a Python-based application packaged and deployed using Docker. The application uses FastAPI and SQLite. This document provides instructions for building, running, and pushing the Docker image.
 
+Docker image: https://hub.docker.com/repository/docker/sumanthchand23/module14/general
+
 ## Prerequisites
 
 - Docker installed on your system: [Docker Installation Guide](https://docs.docker.com/get-docker/)
@@ -437,7 +439,139 @@ docker build -t module14_bread .
 Running the Docker Container Locally
 docker run -d -p 8000:8000 module14_bread
 Visit http://localhost:8000 to access the application.
+```
+# **Module 15 – Advanced Feature Integration with FastAPI**
+## I chose to add two new operands (power, mod) and i also added the report feature
 
+This project extends a FastAPI web application by adding a new **calculations report feature** with full backend logic. front-end templates. authentication-protected access. and complete test coverage across unit. integration. and end-to-end (E2E) layers. The module also includes a fully automated CI/CD workflow using GitHub Actions. which runs all tests. builds a Docker image. and pushes it to Docker Hub.
+
+---
+
+## New Feature: Calculations Report**
+
+The new feature introduces a centralized page that summarizes a user’s calculation history. including:
+
+- Total number of calculations  
+- Averages of operands and results  
+- Count of each operation type  
+- List of recent entries  
+
+The report supports:
+
+- **HTML mode** → rendered at `/calculations/report`  
+- **JSON mode** → returned when the client sends an `Accept: application/json` header  
+
+This enhancement required coordinated updates across backend services. route logic. templates. authentication flow. and the testing suite.
+
+---
+
+## Running the Application Locally**
+
+### **1. Create and activate a virtual environment**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+2. Install dependencies
+bash
+Copy code
+pip install --upgrade pip
+pip install -r requirements.txt
+3. Start the FastAPI server
+bash
+Copy code
+uvicorn app.main:app --reload
+The app will be available at:
+
+cpp
+Copy code
+http://127.0.0.1:8000
+🧪 Running Tests
+Install Playwright browsers (required for E2E)
+bash
+Copy code
+python -m playwright install
+Run the complete test suite
+bash
+Copy code
+pytest -q
+The suite will execute:
+
+Unit tests
+
+Integration tests
+
+Playwright E2E browser tests
+```
+
+## Docker Image
+This project includes a production-ready Dockerfile and automated deployment.
+
+## Public Docker Image
+https://hub.docker.com/repository/docker/sumanthchand23/simple-calculator/general
+
+Pull the image
+Copy code
+docker pull sumanthchand23/simple-calculator:latest
+Run the container
+Copy code
+docker run -p 8000:8000 sumanthchand23/simple-calculator:latest
+Now visit:
+
+arduino
+Copy code
+http://localhost:8000
+## CI/CD Pipeline (GitHub Actions)
+A GitHub Actions workflow handles:
+
+Installing dependencies
+
+Installing Playwright browsers
+
+Starting the FastAPI app in the workflow environment
+
+Running all unit + integration + E2E tests
+
+Building the Docker image
+
+Pushing the image to Docker Hub
+
+Required GitHub Secrets
+DOCKERHUB_USERNAME
+
+DOCKERHUB_TOKEN
+
+Images are pushed using two tags:
+
+latest
+
+<commit-sha>
+
+## Optional: Database Migrations with Alembic
+If your feature requires DB schema changes. you can run:
+
+bash
+Copy code
+alembic revision --autogenerate -m "message"
+alembic upgrade head
+Include migrations in version control.
+
+## Features Completed in This Module
+Added a complete calculation reporting system
+
+Dual-format response (HTML + JSON) with automatic content negotiation
+
+New Jinja2 template for report display
+
+Expanded backend logic in calculation and reporting services
+
+Updated routes and authentication handling
+
+Thorough unit. integration. and E2E test coverage
+
+CI pipeline ensuring all tests pass before deployment
+
+Automatic Docker build and push to Docker Hub
 
 
 
